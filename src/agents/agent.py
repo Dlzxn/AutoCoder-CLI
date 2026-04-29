@@ -3,12 +3,11 @@ import torch, json
 
 
 class Agent:
-    def __init__(self, config: BitsAndBytesConfig, tools: list = [], model_name: str = 'Qwen/Qwen2.5-Coder-14B-Instruct', device='cuda'):
+    def __init__(self, config: BitsAndBytesConfig, tools: list | None = None, model_name: str = 'Qwen/Qwen2.5-Coder-14B-Instruct', device='cuda'):
         self.model = AutoModelForCausalLM.from_pretrained(
                     model_name,
                     quantization_config=config,
-                    device = device
-                    )
+                    ).to(device)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.tools = tools
         self.model.eval()
@@ -23,7 +22,7 @@ class Agent:
                     'content': text
                     }
                    ]
-        if self.tools:
+        if self.tools is not None:
             message_with_template = self.tokenizer.apply_chat_template(
                 message,
                 add_generation_prompt=True,
@@ -40,10 +39,11 @@ class Agent:
         input_len = tokens.input_ids.shape[1]
         result = self.model.generate(
             **tokens,
-            max_new_tokens=4096
+            max_new_tokens=65536
         )
         generated_tokens = result[0][input_len:]
         answer = self.tokenizer.decode(generated_tokens, skip_special_tokens=True)
+        print("Ответ: ", answer)
         return answer
 
 
